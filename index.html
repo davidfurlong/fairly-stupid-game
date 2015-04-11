@@ -1,0 +1,213 @@
+<html>
+<head>
+    <title>pixi.js example 1</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+        }
+    </style>
+    <script src="pixi.js-master/bin/pixi.js"></script>
+</head>
+<body>
+    <script>
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+
+        // create an new instance of a pixi stage
+        var stage = new PIXI.Stage(0xffffff);
+     
+        // create a renderer instance.
+        var renderer = PIXI.autoDetectRenderer(w, h);
+     
+        // add the renderer view element to the DOM
+        document.body.appendChild(renderer.view);
+     
+        requestAnimFrame( animate );
+
+        // create a texture from an image path
+        var grassT = PIXI.Texture.fromImage("grass.png");
+        // create a new Sprite using the texture
+        var grass = new PIXI.TilingSprite(grassT,w,h);
+     
+        // create a texture from an image path
+        var texture = PIXI.Texture.fromImage("bunny.png");
+        // create a new Sprite using the texture
+        var bunny = new PIXI.Sprite(texture);
+
+        var joeTexture = PIXI.Texture.fromImage("joe.png");
+        var joe = new PIXI.Sprite(joeTexture);
+        joe.position.x = Math.random()*w;
+        joe.position.y = Math.random()*h;
+        joe.anchor.x = 0.5;
+        joe.anchor.y = 0.5;
+
+        var bullets = [];
+        var eggs = [];
+
+        // center the sprites anchor point
+        bunny.anchor.x = 0.5;
+        bunny.anchor.y = 0.5;
+        bunny.scale.x = 2;
+        bunny.scale.y = 2;
+     
+        // move the sprite t the center of the screen
+        bunny.position.x = 200;
+        bunny.position.y = 150;
+        
+        stage.addChild(grass);
+        stage.addChild(bunny);
+        stage.addChild(joe);
+
+        var nextJoeGoal = [];
+        var gameOver = false;
+        
+        // explosions
+            var assetsToLoader = [ "SpriteSheet.json"];
+             // create a new loader
+            loader = new PIXI.AssetLoader(assetsToLoader);
+            // use callback
+            loader.onComplete = onAssetsLoaded;
+            //begin load
+            loader.load();
+
+        var explosions = [];
+
+        var count = 0;
+
+        var assetsLoaded = false;
+
+        function onAssetsLoaded(){
+            assetsLoaded = true;
+        }
+     
+        function animate() {
+     
+            requestAnimFrame(animate);
+     
+            // update bullets
+            for(b in bullets){
+                bullets[b].position.y += Math.sin(bullets[b].vector+Math.PI/2)*5;
+                bullets[b].position.x += Math.cos(bullets[b].vector+Math.PI/2)*5;
+                if(bullets[b].position.x > w || bullets[b].position.x < 0 || bullets[b].position.y > h || bullets[b].position.y < 0){
+                    stage.removeChild(bullets[b]);
+                    bullets.splice(b,1);
+                }
+                if(Math.abs(bullets[b].position.x - joe.position.x) < 30 && Math.abs(bullets[b].position.y - joe.position.y) < 30){
+                    alert('GAME OVER');
+                    gameOver = true;
+
+                    if(assetsLoaded){
+                        // create an array to store the textures
+                        var explosionTextures = [];
+
+                        for (var i=0; i < 26; i++)
+                        {
+                             var texture = PIXI.Texture.fromFrame("Explosion_Sequence_A " + (i+1) + ".png");
+                             explosionTextures.push(texture);
+                        };
+
+                        for (var i = 0; i < 20; i++)
+                        {
+                            // create an explosion MovieClip
+                            var explosion = new PIXI.MovieClip(explosionTextures);
+
+                            explosion.position.x = Math.random() * w;
+                            explosion.position.y = Math.random() * h;
+                            explosion.anchor.x = 0.5;
+                            explosion.anchor.y = 0.5;
+
+                            explosion.rotation = Math.random() * Math.PI;
+                            explosion.scale.x = explosion.scale.y = 0.75 + Math.random() * 0.5;
+
+                            explosion.gotoAndPlay(Math.random() * 27);
+
+                            stage.addChild(explosion);
+                        }
+
+                        // start animating
+                        requestAnimFrame( animate );
+                    }
+                    else {
+                        // shit.
+                    }
+                }
+
+            }        
+
+           
+            if(!gameOver){ // end sequence
+                var dirX = Math.random()*3;
+                if(dirX < 1) joe.position.x += 30;
+                else if(dirX < 2) joe.position.x -=30;
+                var dirY = Math.random()*3;
+                if(dirY < 1) joe.position.y += 30;
+                else if(dirY < 2) joe.position.y -=30;
+
+                // check not off screen
+                if(joe.position.x < 0) joe.position.x = w;
+                else if(joe.position.x > w) joe.position.x = 0;
+                if(joe.position.y < 0) joe.position.y = h;
+                else if(joe.position.y > h) joe.position.y = 0;
+
+                var hatchEgg = Math.random() < 0.005;
+                if(hatchEgg){
+                    var eggT = PIXI.Texture.fromImage("egg.png");
+                    // create a new Sprite using the texture
+                    var egg = new PIXI.Sprite(eggT); 
+                    egg.position.x = Math.random()*w;
+                    egg.position.y = Math.random()*h;
+                    egg.anchor.x = 0.5;
+                    egg.anchor.y = 0.5;
+                   // stage.addChild(egg);
+                    eggs.push(egg);
+                }
+            }
+            else {
+                joe.scale.x = joe.scale.x * 1.1;
+                joe.scale.y = joe.scale.y * 1.1;
+                joe.rotation = joe.rotation + 0.2;
+            }
+
+
+            // render the stage   
+            renderer.render(stage);
+        }
+
+        document.addEventListener("keydown", function(e){
+            switch(e.which){
+                case 32:
+                    var text = new PIXI.Text("Yo!", {font:"16px Helvetica", fill:"white"});
+                    text.position.x = bunny.position.x
+                    text.position.y = bunny.position.y
+                    text.vector = bunny.rotation;
+                    bullets.push(text);
+                    stage.addChild(text);
+                    break;
+                case 87: // w
+                    bunny.rotation = Math.PI;
+                    bunny.position.y -= 30;
+                    if(bunny.position.y < 0) bunny.position.y = h;
+                    break;
+                case 65: // a
+                    bunny.rotation = (1/2)*Math.PI;
+                    bunny.position.x -= 30;
+                    if(bunny.position.x < 0) bunny.position.x = w;
+                    break;
+                case 83: // s
+                    bunny.rotation = 0;
+                    bunny.position.y += 30;
+                    if(bunny.position.y > h) bunny.position.y = 0;
+                    break;
+                case 68: // d
+                    bunny.rotation = (3/2)*Math.PI;
+                    bunny.position.x += 30;
+                    if(bunny.position.x > w) bunny.position.w = 0;
+                    break;
+            }
+        });
+ 
+    </script> 
+    </body>
+</html>
